@@ -8,7 +8,7 @@ public class Main {
         javax.swing.SwingUtilities.invokeLater(() -> {
             ElevatorGUI gui = new ElevatorGUI();
             gui.setVisible(true);
-            System.out.println("Ошибка GUI :(");
+            System.out.println("Программа работает");
         });
     }
 }

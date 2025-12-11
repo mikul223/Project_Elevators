@@ -4,148 +4,136 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
-import com.elevator.config.BuildingConfig;
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class ElevatorGUI extends JFrame {
-    private JPanel mainPanel;
+    private BuildingPanel buildingPanel;
+
     private double scale = 1.0;
 
-    //изменяемые размеры
-    private int floorHeight;
-    private int elevatorWidth;
-    private int elevatorHeight;
-    private int buildingWidth;
+    //состояния всех лифтов: текущий этаж, этаж цель, статус, цвет
+    private List<ElevatorState> elevatorStates;
 
     public ElevatorGUI() {
-        updateScaledDimensions();
-        setTitle("Elevators System");
+        //все лифты изначально на 1 этаже
+        elevatorStates = initializeElevatorStates();
+
+        //окно основное
+        setTitle("Elevator System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 800);
+        setSize(1000, 800);
         setLocationRelativeTo(null);
         initComponents();
         setupListeners();
     }
 
-    private void updateScaledDimensions() {
-        floorHeight = (int)(BuildingConfig.BASE_FLOOR_HEIGHT * scale);
-        elevatorWidth = (int)(BuildingConfig.BASE_ELEVATOR_WIDTH * scale);
-        elevatorHeight = (int)(BuildingConfig.BASE_ELEVATOR_HEIGHT * scale);
-        buildingWidth = (int)(BuildingConfig.BASE_BUILDING_WIDTH * scale);
+    public static class ElevatorState {
+        private int currentFloor;  // текущий этаж лифта
+        private int targetFloor;   // этаж цель
+        private String status;     // текущее состояние: STOPPED, MOVING_UP, MOVING_DOWN, DOORS_OPEN
+        private Color color;       // цвет лифта
 
+
+        public ElevatorState(int startFloor) {
+            this.currentFloor = startFloor;
+            this.targetFloor = startFloor;
+            this.status = "STOPPED";
+            this.color = new Color(180, 180, 180);
+        }
+
+
+
+        public int getCurrentFloor() { return currentFloor; }
+        public void setCurrentFloor(int floor) { this.currentFloor = floor; }
+
+        public int getTargetFloor() { return targetFloor; }
+        public void setTargetFloor(int floor) { this.targetFloor = floor; }
+
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
+        public Color getColor() { return color; }
+        public void setColor(Color color) { this.color = color; }
     }
 
 
-    private void initComponents() {
-        mainPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                //g.setColor(new Color(165, 192, 220));
-                //g.fillRect(0, 0, getWidth(), getHeight());
-                drawBuilding(g);
+    private List<ElevatorState> initializeElevatorStates() {
+        List<ElevatorState> states = new ArrayList<>();
+
+        //!!!!!!!!!!!!!!!!!! нужно получать из BuildingConfig.ELEVATORS_COUNT вместо 20 конст из конфига
+        int elevatorsCount = 20;
+
+        for (int i = 0; i < elevatorsCount; i++) {
+            states.add(new ElevatorState(0));
+        }
+        return states;
+    }
+
+    //на будущее цвета
+    public void updateElevatorState(int elevatorId, int currentFloor, int targetFloor, String status) {
+        // id лифта -- отображаемый номер -1
+        if (elevatorId >= 0 && elevatorId < elevatorStates.size()) {
+            ElevatorState state = elevatorStates.get(elevatorId);
+
+            state.setCurrentFloor(currentFloor);
+            state.setTargetFloor(targetFloor);
+            state.setStatus(status);
+
+            switch (status.toUpperCase()) {
+                case "MOVING_UP" ->
+                        state.setColor(new Color(255, 7, 7));
+                case "MOVING_DOWN" ->
+                        state.setColor(new Color(27, 59, 255));
+                case "DOORS_OPEN" ->
+                        state.setColor(new Color(255, 210, 70));
+                default ->
+                        state.setColor(new Color(180, 180, 180));
             }
-        };
 
-        int panelWidth = buildingWidth + 100;
-        int panelHeight = BuildingConfig.TOTAL_FLOORS * floorHeight + 100;
+            //перерисовка
+            buildingPanel.repaint();
+        }
+    }
 
-        mainPanel.setPreferredSize(new Dimension(panelWidth, panelHeight));
-        mainPanel.setBackground(new Color(165, 192, 220));
+    private void initComponents() {
+        buildingPanel = new BuildingPanel(elevatorStates);
+        JScrollPane scrollPane = new JScrollPane(buildingPanel);
 
-        JScrollPane scrollPane = new JScrollPane(mainPanel);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(scrollPane, BorderLayout.CENTER);
     }
 
-    private void drawBuilding(Graphics g) {
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-
-        int totalFloors = BuildingConfig.TOTAL_FLOORS;
-        int elevatorsCount = BuildingConfig.ELEVATORS_COUNT;
-
-
-        int startX = 50;
-        int startY = 50;
-
-        //контур здания
-        g2d.setColor(new Color(240, 240, 240));
-        g2d.fillRect(startX, startY, buildingWidth, totalFloors * floorHeight);
-        g2d.setColor(Color.DARK_GRAY);
-        g2d.drawRect(startX, startY, buildingWidth, totalFloors * floorHeight);
-
-        // этажи
-        for (int floor = 0; floor <= totalFloors; floor++) {
-            int y = startY + (totalFloors - floor) * floorHeight;
-
-            // линия этажа
-            g2d.setColor(new Color(200, 200, 200));
-            g2d.drawLine(startX, y, startX + buildingWidth, y);
-
-            // номер этажа
-            g2d.setColor(Color.BLACK);
-            g2d.setFont(new Font("Arial", Font.PLAIN, (int)(12 * scale)));
-            String floorText = String.valueOf(floor);
-            g2d.drawString(floorText, startX - 20, y + 5);
-        }
-
-        //  лифты M штук
-        if (elevatorsCount > 0) {
-            int elevatorSpacing = buildingWidth / (elevatorsCount + 1);
-
-            for (int i = 0; i < elevatorsCount; i++) {
-                int elevatorX = startX + elevatorSpacing * (i + 1) - elevatorWidth / 2;
-
-                //все лифты изначально на 1 этаже
-                int floorNumber = 0; // Этаж 0 (ground floor)
-                int elevatorY = startY + (totalFloors - floorNumber) * floorHeight - elevatorHeight;
-                g2d.setColor(new Color(180, 180, 180));
-                g2d.fillRect(elevatorX, elevatorY, elevatorWidth, elevatorHeight);
-                g2d.setColor(Color.DARK_GRAY);
-                g2d.drawRect(elevatorX, elevatorY, elevatorWidth, elevatorHeight);
-
-                // номер лифта
-                g2d.setColor(Color.BLACK);
-                g2d.setFont(new Font("Arial", Font.BOLD, (int)(14 * scale)));
-                String elevatorText = String.valueOf(i + 1);
-                FontMetrics fm = g2d.getFontMetrics();
-                int textWidth = fm.stringWidth(elevatorText);
-                g2d.drawString(elevatorText,
-                        elevatorX + (elevatorWidth - textWidth)/2,
-                        elevatorY + elevatorHeight/2 + 5);
-            }
-        }
-
-    }
-
-
-
     private void setupListeners() {
-        mainPanel.addMouseWheelListener(new MouseWheelListener() {
+        // регулировать масштаб колесиком мышки
+        buildingPanel.addMouseWheelListener(new MouseWheelListener() {
             @Override
             public void mouseWheelMoved(MouseWheelEvent e) {
-                double oldScale = scale;
                 double scaleFactor = 1.1;
 
                 if (e.getWheelRotation() > 0) {
                     scaleFactor = 1.0 / scaleFactor;
                 }
 
+                double oldScale = scale;
                 scale *= scaleFactor;
                 scale = Math.max(0.3, Math.min(scale, 3.0));
-                updateScaledDimensions();
 
-                int totalFloors = BuildingConfig.TOTAL_FLOORS;
-                int newPanelWidth = buildingWidth + 100;
-                int newPanelHeight = totalFloors * floorHeight + 100;
+                // обновляем панель при изменении масштаба
+                if (oldScale != scale) {
+                    buildingPanel.updateScale(scale);
+                }
+            }
+        });
 
-                mainPanel.setPreferredSize(new Dimension(newPanelWidth, newPanelHeight));
-                mainPanel.revalidate();
-                repaint();
+        buildingPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                //перерисовка
+                buildingPanel.repaint();
             }
         });
     }
