@@ -6,7 +6,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
 import java.util.List;
-
+import com.elevator.config.BuildingConfig;
 
 public class ElevatorGUI extends JFrame {
     private BuildingPanel buildingPanel;
@@ -62,8 +62,7 @@ public class ElevatorGUI extends JFrame {
     private List<ElevatorState> initializeElevatorStates() {
         List<ElevatorState> states = new ArrayList<>();
 
-        //!!!!!!!!!!!!!!!!!! нужно получать из BuildingConfig.ELEVATORS_COUNT вместо 20 конст из конфига
-        int elevatorsCount = 20;
+        int elevatorsCount = BuildingConfig.ELEVATORS_COUNT;;
 
         for (int i = 0; i < elevatorsCount; i++) {
             states.add(new ElevatorState(0));
