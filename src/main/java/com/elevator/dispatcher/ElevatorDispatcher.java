@@ -51,9 +51,13 @@ public class ElevatorDispatcher {
     private int calculateScore(Elevator elevator, Request request) {
         // текущие параметры лифта
         int currentFloor = elevator.getCurrentFloor();
-        int callFloor = request.getCallFloor();
+
         Direction direction = elevator.getDirection();
         ElevatorState state = elevator.getElevatorState();
+        int callFloor = request.getCallFloor();
+        Direction requestedDirection = request.getDirection();
+
+
 
         // дальше лифт - выше стоимость
         int distance = Math.abs(currentFloor - callFloor);

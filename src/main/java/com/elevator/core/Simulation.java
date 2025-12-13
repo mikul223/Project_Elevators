@@ -11,9 +11,7 @@ import java.util.concurrent.TimeUnit;
 // генерация случайный этаж, случайное время
 public class Simulation {
     private final Building building;
-
     private final Random random = new Random();
-
     private ScheduledExecutorService scheduler;
 
     public Simulation(Building building) {
