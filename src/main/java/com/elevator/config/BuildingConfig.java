@@ -10,5 +10,6 @@ public class BuildingConfig {
     public static final int BASE_ELEVATOR_HEIGHT = 70;
     public static final int BASE_BUILDING_WIDTH = 500;
 
+
     private BuildingConfig() {}
 }

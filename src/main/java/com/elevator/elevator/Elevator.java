@@ -4,11 +4,11 @@ import com.elevator.request.Request;
 import com.elevator.gui.ElevatorGUI;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-//import java.util.concurrent.locks.ReentrantLock;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import com.elevator.config.BuildingConfig;
 import java.util.concurrent.TimeUnit;
+import javax.swing.SwingUtilities;
 
 
 // класс Elevator - один лифт, каждый лифт отдельный поток
@@ -291,40 +291,44 @@ public class Elevator extends Thread {
     private void processStopAtFloor(int floor) throws InterruptedException {
         setElevatorState(ElevatorState.STOPPED, Direction.WAIT);
 
-        lock.lock();
         List<Request> completedRequests = new ArrayList<>();
+        boolean passengerBoarded = false;
+
+        lock.lock();
         try {
             // Находим запросы, которые нужно обработать на этом этаже
             for (Request req : activeRequests) {
-                if (req.getCallFloor() == floor || req.getTargetFloor() == floor) {
-                    if (req.getCallFloor() == floor) {
-                        System.out.println("Лифт " + (elevatorId + 1) +
-                                " принял пассажира на этаже " + (floor + 1) +
-                                " -> этаж " + (req.getTargetFloor() + 1));
-                    } else {
-                        System.out.println("Лифт " + (elevatorId + 1) +
-                                " высадил пассажира на этаже " + (floor + 1));
-                        completedRequests.add(req);
-                    }
+                if (req.getTargetFloor() == floor) {
+                    System.out.println("Лифт " + (elevatorId + 1) +
+                            " высадил пассажира на этаже " + (floor + 1));
+                    completedRequests.add(req);
+                } else if (req.getCallFloor() == floor) {
+                    System.out.println("Лифт " + (elevatorId + 1) +
+                            " принял пассажира на этаже " + (floor + 1));
+                    passengerBoarded = true;
                 }
             }
 
-            // Удаляем завершенные запросы
             activeRequests.removeAll(completedRequests);
-
-            // Обновляем направление, если нужно
-            if (activeRequests.isEmpty()) {
-                direction = Direction.WAIT;
-            } else {
-                // Пересчитываем направление на основе оставшихся запросов
-                direction = calculateOptimalDirection();
-            }
+            direction = calculateOptimalDirection();
         } finally {
             lock.unlock();
         }
 
-        // Открываем двери, если есть что обрабатывать
-        if (!completedRequests.isEmpty() || shouldOpenDoorsAtFloor(floor)) {
+        // удаление пассажира с этажа GUI
+
+        if (passengerBoarded && gui != null) {
+            //invokeLater для потокобезопасности
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    ((com.elevator.gui.ElevatorGUI) gui).removePassengerFromFloor(floor);
+                } catch (Exception e) {
+                    System.err.println("Ошибка при удалении пассажира с этажа " + (floor + 1) + ": " + e.getMessage());
+                }
+            });
+        }
+
+        if (!completedRequests.isEmpty() || passengerBoarded || shouldOpenDoorsAtFloor(floor)) {
             openDoors();
         }
     }

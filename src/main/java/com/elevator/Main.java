@@ -19,9 +19,10 @@ public class Main {
 
                 //создание здания, диспечера
                 Building building = new Building(gui);
-
                 //симуляция
                 Simulation simulation = new Simulation(building);
+
+                simulation.setGUI(gui);
                 simulation.start();
 
                 System.out.println("Программа работает");
@@ -29,10 +30,9 @@ public class Main {
                 gui.addWindowListener(new java.awt.event.WindowAdapter() {
                     @Override
                     public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                        simulation.stop();
+                        simulation.stop(); // Теперь simulation доступна
                         System.out.println("Система остановлена");
                     }
-
                 });
             } catch (Exception e) {
                 System.err.println("Ошибка запуска приложения: " + e.getMessage());

@@ -7,15 +7,28 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import com.elevator.gui.ElevatorGUI;
+import javax.swing.SwingUtilities;
 
 // генерация случайный этаж, случайное время
 public class Simulation {
     private final Building building;
     private final Random random = new Random();
     private ScheduledExecutorService scheduler;
+    private final PassengerManager passengerManager;
+    private ElevatorGUI gui;
 
     public Simulation(Building building) {
         this.building = building;
+        this.passengerManager = new PassengerManager();
+    }
+
+    public PassengerManager getPassengerManager() {
+        return passengerManager;
+    }
+
+    public void setGUI(ElevatorGUI gui) {
+        this.gui = gui;
     }
 
     //запуск симуляции
@@ -53,6 +66,15 @@ public class Simulation {
             } while (targetFloor == callFloor);
 
             Direction direction = (targetFloor > callFloor) ? Direction.UP : Direction.DOWN;
+
+            passengerManager.addPassenger(callFloor);
+
+            if (gui != null) {
+                SwingUtilities.invokeLater(() -> {
+                    gui.addPassengerToFloor(callFloor);
+                });
+            }
+
             Request request = new Request(callFloor, direction, targetFloor);
 
             System.out.println("Новый запрос: пассажир на этаже " + (callFloor + 1) +

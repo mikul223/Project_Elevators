@@ -4,9 +4,13 @@ import com.elevator.config.BuildingConfig;
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BuildingPanel extends JPanel {
     private double scale = 1.0;
+
+
 
     //размеры элементов из-за масштаба
     private int floorHeight;
@@ -15,12 +19,18 @@ public class BuildingPanel extends JPanel {
     private final int totalFloors;
     private final int elevatorsCount;
     private List<ElevatorGUI.ElevatorState> elevatorStates;
+    private Map<Integer, Integer> floorPassengers;
+
 
     // ссновной экран
-    public BuildingPanel(List<ElevatorGUI.ElevatorState> elevatorStates) {
+    public BuildingPanel(List<ElevatorGUI.ElevatorState> elevatorStates, Map<Integer, Integer> floorPassengers) {
+        this.elevatorStates = elevatorStates;
+        this.floorPassengers = floorPassengers;
+
         this.totalFloors = BuildingConfig.TOTAL_FLOORS;
         this.elevatorsCount = BuildingConfig.ELEVATORS_COUNT;
         this.elevatorStates = elevatorStates;
+        this.floorPassengers = floorPassengers;
         updateScaledDimensions();
 
         setBackground(new Color(165, 192, 220));
@@ -28,6 +38,10 @@ public class BuildingPanel extends JPanel {
         int panelWidth = 1200;
         int panelHeight = totalFloors * floorHeight + 200; // +отступ
         setPreferredSize(new Dimension(panelWidth, panelHeight));
+    }
+
+    public void setFloorPassengers(Map<Integer, Integer> floorPassengers) {
+        this.floorPassengers = floorPassengers;
     }
 
     // обновление масштаба (от колёсика мышки)
@@ -57,6 +71,7 @@ public class BuildingPanel extends JPanel {
         super.paintComponent(g);
         drawBuilding(g);
         drawElevators(g);
+        drawPassengers(g);
     }
 
     //контур, этажи, номера этажей
@@ -84,6 +99,8 @@ public class BuildingPanel extends JPanel {
         //этажи и номера, y - нижняяя граница этажа
         for (int floor = 0; floor < totalFloors; floor++) {
 
+            int passengerCount = floorPassengers.getOrDefault(floor, 0);
+
             int lineY = startY + (totalFloors - floor) * floorHeight;
             if (floor > 0) {
                 g2d.setColor(new Color(184, 42, 42));
@@ -104,6 +121,49 @@ public class BuildingPanel extends JPanel {
         //g2d.setColor(new Color(184, 42, 42));
         //g2d.drawLine(startX, topLineY, startX + buildingWidth, topLineY);
     }
+
+    private void drawPassengers(Graphics g) {
+
+        if (floorPassengers == null) return;
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int indent = 50;
+        int buildingWidth = Math.max(getWidth() - 2 * indent, 300);
+        int startX = indent;
+        int startY = indent;
+        int floorHeight = (int)(BuildingConfig.BASE_FLOOR_HEIGHT * scale);
+
+        for (int floor = 0; floor < BuildingConfig.TOTAL_FLOORS; floor++) {
+            Integer passengerCountObj = floorPassengers.get(floor);
+            int passengerCount = (passengerCountObj != null) ? passengerCountObj : 0;
+
+            if (passengerCount > 0) {
+                int floorY = startY + (BuildingConfig.TOTAL_FLOORS - floor - 1) * floorHeight;
+
+                // черные кружочки
+                g2d.setColor(Color.BLACK);
+                int spacing = buildingWidth / (passengerCount + 1);
+
+                for (int i = 0; i < passengerCount; i++) {
+                    int passengerX = startX + spacing * (i + 1);
+                    int passengerY = floorY + floorHeight / 2;
+                    g2d.fillOval(passengerX - 6, passengerY - 6, 12, 12);
+
+                    // обводка
+                    g2d.setColor(Color.WHITE);
+                    g2d.drawOval(passengerX - 6, passengerY - 6, 12, 12);
+                    g2d.setColor(Color.BLACK);
+                }
+            }
+        }
+
+
+
+
+    }
+
+
 
     //лифты
     private void drawElevators(Graphics g) {

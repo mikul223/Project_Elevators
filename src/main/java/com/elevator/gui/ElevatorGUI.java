@@ -5,8 +5,11 @@ import java.awt.*;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 import com.elevator.config.BuildingConfig;
+import java.util.concurrent.ConcurrentHashMap;
+
 
 public class ElevatorGUI extends JFrame {
     private BuildingPanel buildingPanel;
@@ -15,10 +18,12 @@ public class ElevatorGUI extends JFrame {
 
     //состояния всех лифтов: текущий этаж, этаж цель, статус, цвет
     private List<ElevatorState> elevatorStates;
+    private final Map<Integer, Integer> floorPassengers = new ConcurrentHashMap<>();
 
     public ElevatorGUI() {
         //все лифты изначально на 1 этаже
         elevatorStates = initializeElevatorStates();
+        initializePassengerMap();
 
         //окно основное
         setTitle("Elevator System");
@@ -27,6 +32,52 @@ public class ElevatorGUI extends JFrame {
         setLocationRelativeTo(null);
         initComponents();
         setupListeners();
+    }
+
+    private void initializePassengerMap() {
+        for (int i = 0; i < BuildingConfig.TOTAL_FLOORS; i++) {
+            floorPassengers.put(i, 0);
+        }
+    }
+
+    //добавить пассажира на этаж
+    public void addPassengerToFloor(int floor) {
+        if (floor >= 0 && floor < BuildingConfig.TOTAL_FLOORS) {
+            int current = floorPassengers.getOrDefault(floor, 0);
+            floorPassengers.put(floor, current + 1);
+            System.out.println("DEBUG: Добавлен пассажир на этаж " + (floor + 1) +
+                    ". Всего: " + floorPassengers.get(floor));
+            buildingPanel.setFloorPassengers(floorPassengers);
+            buildingPanel.repaint();
+        } else {
+            System.err.println("Ошибка: неверный номер этажа " + floor);
+        }
+    }
+
+    // удалить пассажира с этажа
+    public void removePassengerFromFloor(int floor) {
+        if (floor >= 0 && floor < BuildingConfig.TOTAL_FLOORS) {
+            int current = floorPassengers.getOrDefault(floor, 0);
+            if (current > 0) {
+                floorPassengers.put(floor, current - 1);
+                System.out.println("DEBUG: Удален пассажир с этажа " + (floor + 1) +
+                        ". Осталось: " + floorPassengers.get(floor));
+            } else {
+                System.err.println("Предупреждение: попытка удалить пассажира с пустого этажа " + (floor + 1));
+            }
+            buildingPanel.setFloorPassengers(floorPassengers);
+            buildingPanel.repaint();
+        } else {
+            System.err.println("Ошибка: неверный номер этажа " + floor);
+        }
+    }
+
+    // получить количество пассажиров на этаже
+    public synchronized int getPassengerCountOnFloor(int floor) {
+        if (floor >= 0 && floor < BuildingConfig.TOTAL_FLOORS) {
+            return floorPassengers.getOrDefault(floor, 0);
+        }
+        return 0;
     }
 
     public static class ElevatorState {
@@ -92,12 +143,15 @@ public class ElevatorGUI extends JFrame {
             }
 
             //перерисовка
-            buildingPanel.repaint();
+            SwingUtilities.invokeLater(() -> buildingPanel.repaint());
+
+        } else {
+            System.err.println("Ошибка: неверный ID лифта " + elevatorId);
         }
     }
 
     private void initComponents() {
-        buildingPanel = new BuildingPanel(elevatorStates);
+        buildingPanel = new BuildingPanel(elevatorStates, floorPassengers);
         JScrollPane scrollPane = new JScrollPane(buildingPanel);
 
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
