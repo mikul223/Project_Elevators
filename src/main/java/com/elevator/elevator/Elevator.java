@@ -7,6 +7,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 //import java.util.concurrent.locks.ReentrantLock;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import com.elevator.config.BuildingConfig;
+import java.util.concurrent.TimeUnit;
 
 
 // класс Elevator - один лифт, каждый лифт отдельный поток
@@ -29,7 +31,7 @@ public class Elevator extends Thread {
     // константы времени (в мс)
     private static final int DOOR_OPEN_TIME = 2000;
     private static final int FLOOR_TRAVEL_TIME = 1000;
-    private static final int CAPACITY = 8;
+ //   private static final int CAPACITY = 8;
 
 
     public Elevator(int elevatorId, ElevatorGUI gui) {
@@ -57,28 +59,24 @@ public class Elevator extends Thread {
 
 
     private void optimizeAndProcessRequests() throws InterruptedException {
-        lock.lock();
-        try {
-            // Если нет активных запросов, берем следующий из очереди ожидания
-            if (activeRequests.isEmpty() && !pendingRequests.isEmpty()) {
-                Request newRequest = pendingRequests.poll();
-                if (newRequest != null) {
+        if (activeRequests.isEmpty()) {
+            Request newRequest = pendingRequests.poll(100, TimeUnit.MILLISECONDS);
+            if (newRequest != null) {
+                lock.lock();
+                try {
                     activeRequests.add(newRequest);
                     direction = calculateInitialDirection(newRequest);
+                } finally {
+                    lock.unlock();
                 }
-            }
-
-            // Если все еще нет активных запросов - ждем
-            if (activeRequests.isEmpty()) {
+            } else {
                 setElevatorState(ElevatorState.STOPPED, Direction.WAIT);
                 return;
             }
-        } finally {
-            lock.unlock();
         }
 
-        // Выполняем оптимизированный маршрут
         executeOptimizedRoute();
+
     }
 
     private Direction calculateInitialDirection(Request request) {
@@ -198,7 +196,29 @@ public class Elevator extends Thread {
 
         return true;
     }
+    public boolean willStopAtFloor(int floor) {
+        lock.lock();
+        try {
+            if (floor == currentFloor) return true;
 
+            for (Request req : activeRequests) {
+                if (req.getCallFloor() == floor || req.getTargetFloor() == floor) {
+                    return true;
+                }
+            }
+
+            if (direction == Direction.UP && floor > currentFloor){
+                return true;
+            }
+            if (direction == Direction.DOWN && floor < currentFloor){
+                return true;
+            }
+
+            return false;
+        } finally {
+            lock.unlock();
+        }
+    }
 
     private void moveToFloorWithPickups(int targetFloor) throws InterruptedException {
         Direction moveDirection = (targetFloor > currentFloor) ? Direction.UP : Direction.DOWN;
@@ -208,7 +228,12 @@ public class Elevator extends Thread {
             // Проверяем, нужно ли остановиться на промежуточном этаже
             checkForIntermediatePickups();
 
-            Thread.sleep(FLOOR_TRAVEL_TIME);
+            try {
+                Thread.sleep(FLOOR_TRAVEL_TIME);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw e;
+            }
 
             lock.lock();
             try {
@@ -217,12 +242,12 @@ public class Elevator extends Thread {
                 lock.unlock();
             }
 
-            gui.updateElevatorState(elevatorId, currentFloor, targetFloor,
-                    "MOVING_" + (moveDirection == Direction.UP ? "UP" : "DOWN"));
+            setElevatorState(ElevatorState.MOVING, moveDirection);
         }
     }
 
     private void checkForIntermediatePickups() {
+        List<Request> toAdd = new ArrayList<>();
         lock.lock();
         try {
             // Проверяем запросы в очереди ожидания
@@ -232,35 +257,35 @@ public class Elevator extends Thread {
 
                 // Если запрос на текущем этаже и по текущему направлению
                 if (req.getCallFloor() == currentFloor &&
-                        (req.getDirection() == direction || req.getDirection() == Direction.WAIT ||
-                                direction == Direction.WAIT)) {
+                        (req.getDirection() == direction || direction == Direction.WAIT) &&
+                        activeRequests.size() < BuildingConfig.ELEVATOR_CAPACITY) {
 
-                    // Проверяем вместимость
-                    if (activeRequests.size() < CAPACITY) {
-                        System.out.println("Лифт " + (elevatorId + 1) +
-                                " подбирает пассажира на этаже " + (currentFloor + 1) +
-                                " по пути");
+                    System.out.println("Лифт " + (elevatorId + 1) +
+                            " подбирает пассажира на этаже " + (currentFloor + 1));
 
-                        activeRequests.add(req);
-                        iterator.remove();
-
-                        // Если лифт был в режиме ожидания, устанавливаем направление
-                        if (direction == Direction.WAIT) {
-                            direction = req.getTargetFloor() > currentFloor ? Direction.UP : Direction.DOWN;
-                        }
-
-                        // Немедленная остановка
-                        try {
-                            openDoors();
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
+                    toAdd.add(req);
+                    iterator.remove();
                 }
             }
+            if (!toAdd.isEmpty()) {
+                activeRequests.addAll(toAdd);
+                if (direction == Direction.WAIT && !toAdd.isEmpty()) {
+                    direction = toAdd.get(0).getTargetFloor() > currentFloor ? Direction.UP : Direction.DOWN;
+                }
+            }
+
         } finally {
             lock.unlock();
         }
+        //открытие дверей отдельно
+        if (!toAdd.isEmpty()) {
+            try {
+                openDoors();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
     }
 
     private void processStopAtFloor(int floor) throws InterruptedException {

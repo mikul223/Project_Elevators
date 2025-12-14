@@ -12,10 +12,8 @@ public class BuildingPanel extends JPanel {
     private int floorHeight;
     private int elevatorWidth;
     private int elevatorHeight;
-
     private final int totalFloors;
     private final int elevatorsCount;
-
     private List<ElevatorGUI.ElevatorState> elevatorStates;
 
     // ссновной экран
@@ -67,9 +65,9 @@ public class BuildingPanel extends JPanel {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         int indent = 50; //отступы
-
-        int buildingWidth = getWidth() - 2 * indent;
-        if (buildingWidth < 300) buildingWidth = 300;
+        int buildingWidth = Math.max(getWidth() - 2 * indent, 300);
+        //int buildingWidth = getWidth() - 2 * indent;
+        //if (buildingWidth < 300) buildingWidth = 300;
 
         int startX = indent;
         int startY = indent;
@@ -102,9 +100,9 @@ public class BuildingPanel extends JPanel {
             int textWidth = fm.stringWidth(floorText);
             g2d.drawString(floorText, startX - textWidth - 10, textY + 5);
         }
-        int topLineY = startY + totalFloors * floorHeight;
-        g2d.setColor(new Color(184, 42, 42));
-        g2d.drawLine(startX, topLineY, startX + buildingWidth, topLineY);
+        //int topLineY = startY + totalFloors * floorHeight;
+        //g2d.setColor(new Color(184, 42, 42));
+        //g2d.drawLine(startX, topLineY, startX + buildingWidth, topLineY);
     }
 
     //лифты
@@ -112,25 +110,22 @@ public class BuildingPanel extends JPanel {
         Graphics2D g2d = (Graphics2D) g;
 
         int indent = 50;
-        int buildingWidth = getWidth() - 2 * indent;
-        if (buildingWidth < 300) buildingWidth = 300;
+        int buildingWidth = Math.max(getWidth() - 2 * indent, 300);
+        //int buildingWidth = getWidth() - 2 * indent;
+        //if (buildingWidth < 300) buildingWidth = 300;
 
         int startX = indent;
         int startY = indent;
 
-        // проверка
+        // проверка. Если лифты не убираются - уменьшаются
         if (elevatorsCount > 0 && elevatorStates != null) {
             int minSpace = 15;
-
             int availableWidth = buildingWidth - 40;
-            int totalElevatorsWidth = elevatorsCount * elevatorWidth;
-            int totalGapsWidth = (elevatorsCount - 1) * minSpace;
 
-            // Если лифты не убираются - уменьшаются
             int currentElevatorWidth = elevatorWidth;
-            if (totalElevatorsWidth + totalGapsWidth > availableWidth) {
-                currentElevatorWidth = (availableWidth - totalGapsWidth) / elevatorsCount;
-                if (currentElevatorWidth < 25) currentElevatorWidth = 25; // Минимальная ширина
+            if (elevatorsCount * (elevatorWidth + minSpace) - minSpace > availableWidth) {
+                currentElevatorWidth = (availableWidth - (elevatorsCount - 1) * minSpace) / elevatorsCount;
+                currentElevatorWidth = Math.max(currentElevatorWidth, 25);
             }
 
             int currentElevatorHeight = (int)(currentElevatorWidth * 1.5);
@@ -153,8 +148,6 @@ public class BuildingPanel extends JPanel {
 
                 g2d.setColor(Color.DARK_GRAY);
                 g2d.drawRect(elevatorX, elevatorY, currentElevatorWidth, currentElevatorHeight);
-
-
 
                 //НОМЕР ЛИФТА
                 g2d.setColor(Color.BLACK);

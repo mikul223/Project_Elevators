@@ -12,18 +12,32 @@ public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
 
-            //GUI
-            ElevatorGUI gui = new ElevatorGUI();
-            gui.setVisible(true);
+            try {
+                //GUI
+                ElevatorGUI gui = new ElevatorGUI();
+                gui.setVisible(true);
 
-            //создание здания, диспечера
-            Building building = new Building(gui);
+                //создание здания, диспечера
+                Building building = new Building(gui);
 
-            //симуляция
-            Simulation simulation = new Simulation(building);
-            simulation.start();
+                //симуляция
+                Simulation simulation = new Simulation(building);
+                simulation.start();
 
-            System.out.println("Программа работает");
+                System.out.println("Программа работает");
+
+                gui.addWindowListener(new java.awt.event.WindowAdapter() {
+                    @Override
+                    public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                        simulation.stop();
+                        System.out.println("Система остановлена");
+                    }
+
+                });
+            } catch (Exception e) {
+                System.err.println("Ошибка запуска приложения: " + e.getMessage());
+                e.printStackTrace();
+            }
         });
     }
 }

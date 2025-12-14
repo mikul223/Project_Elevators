@@ -30,25 +30,38 @@ public class Simulation {
     //остановка симуляции
     public void stop() {
         if (scheduler != null) {
-            scheduler.shutdown(); // Останавливаем планировщик
+            scheduler.shutdown();
+            try {
+                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    scheduler.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                scheduler.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
+        building.stopElevators();
     }
 
     private void generateRandomRequest() {
-        int callFloor = random.nextInt(BuildingConfig.TOTAL_FLOORS);
+        try {
+            int callFloor = random.nextInt(BuildingConfig.TOTAL_FLOORS);
 
-        int targetFloor;
-        do {
-            targetFloor = random.nextInt(BuildingConfig.TOTAL_FLOORS);
-        } while (targetFloor == callFloor);
+            int targetFloor;
+            do {
+                targetFloor = random.nextInt(BuildingConfig.TOTAL_FLOORS);
+            } while (targetFloor == callFloor);
 
-        Direction direction = (targetFloor > callFloor) ? Direction.UP : Direction.DOWN;
-        Request request = new Request(callFloor, direction, targetFloor);
+            Direction direction = (targetFloor > callFloor) ? Direction.UP : Direction.DOWN;
+            Request request = new Request(callFloor, direction, targetFloor);
 
-        System.out.println("Новый запрос: пассажир на этаже " + (callFloor + 1) +
-                " хочет на этаж " + (targetFloor + 1) + " (" +
-                (direction == Direction.UP ? "ВВЕРХ" : "ВНИЗ") + ")");
+            System.out.println("Новый запрос: пассажир на этаже " + (callFloor + 1) +
+                    " хочет на этаж " + (targetFloor + 1) + " (" +
+                    (direction == Direction.UP ? "ВВЕРХ" : "ВНИЗ") + ")");
 
-        building.getDispatcher().handleRequest(request);
+            building.getDispatcher().handleRequest(request);
+        } catch (Exception e) {
+            System.err.println("Ошибка генерации запроса: " + e.getMessage());
+        }
     }
 }

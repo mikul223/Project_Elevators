@@ -2,7 +2,7 @@ package com.elevator.dispatcher;
 
 import com.elevator.elevator.Elevator;
 import com.elevator.elevator.Direction;
-import com.elevator.elevator.ElevatorState;
+
 import com.elevator.request.Request;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -17,14 +17,22 @@ public class ElevatorDispatcher {
     }
 
     public synchronized void handleRequest(Request request) {
-        Elevator bestElevator = findBestElevator(request);
 
-        if (bestElevator != null) {
-            System.out.println("Запрос: этаж " + (request.getCallFloor() + 1) +
-                    " -> " + (request.getTargetFloor() + 1) +
-                    " назначен лифту " + (bestElevator.getElevatorId() + 1));
 
-            bestElevator.addRequest(request);
+        try {
+            Elevator bestElevator = findBestElevator(request);
+
+            if (bestElevator != null) {
+                System.out.println("Запрос: этаж " + (request.getCallFloor() + 1) +
+                        " -> " + (request.getTargetFloor() + 1) +
+                        " назначен лифту " + (bestElevator.getElevatorId() + 1));
+
+                bestElevator.addRequest(request);
+            } else {
+                System.out.println("Нет доступных лифтов для запроса с этажа " + (request.getCallFloor() + 1));
+            }
+        } catch (Exception e) {
+            System.err.println("Ошибка обработки запроса: " + e.getMessage());
         }
     }
 
@@ -53,37 +61,37 @@ public class ElevatorDispatcher {
         int currentFloor = elevator.getCurrentFloor();
 
         Direction direction = elevator.getDirection();
-        ElevatorState state = elevator.getElevatorState();
         int callFloor = request.getCallFloor();
         Direction requestedDirection = request.getDirection();
-
-
 
         // дальше лифт - выше стоимость
         int distance = Math.abs(currentFloor - callFloor);
         int score = distance * 10;
 
-        // свободные лифты дешевле
-        if (state == ElevatorState.STOPPED && direction == Direction.WAIT) {
-            score -= 50; // Большой бонус (-50 к стоимости)
-        }
-
-        //лифт уже едет в том направлении, куда хочет пассажир, который ждет лифт
-        if (direction == request.getDirection()) {
-            if ((direction == Direction.UP && currentFloor <= callFloor) ||
-                    (direction == Direction.DOWN && currentFloor >= callFloor)) {
-                score -= 30;
+        if (direction == Direction.WAIT) {
+            //свободные лифты дешевле
+            score -= 100;
+        } else if (direction == requestedDirection) {
+            //лифт уже едет в том направлении, куда хочет пассажир, который ждет лифт
+            if ((direction == Direction.UP && currentFloor <= callFloor) || (direction == Direction.DOWN && currentFloor >= callFloor)) {
+                score -= 50;
+            } else {
+                // лифт проехал этаж
+                score += 100;
             }
+        } else {
+            // лифт уже едет НЕ в том направлении, куда хочет пассажир, который ждет лифт
+            score += 150;
         }
 
-        // лифт уже едет НЕ в том направлении, куда хочет пассажир, который ждет лифт
-        if (direction != Direction.WAIT && direction != request.getDirection()) {
-            score += 100;
+        // проверяем вместимость
+        if (elevator.getActivePassengerCount() >= com.elevator.config.BuildingConfig.ELEVATOR_CAPACITY) {
+            score += 200;
         }
 
-        // идеальный вариант - лифт там где и надо с открытыми дверями
-        if (state == ElevatorState.DOORS_OPEN && currentFloor == callFloor) {
-            score -= 1000;
+        // проверяем, остановится ли лифт на этом этаже
+        if (elevator.willStopAtFloor(callFloor)) {
+            score -= 30;
         }
 
         return score;
