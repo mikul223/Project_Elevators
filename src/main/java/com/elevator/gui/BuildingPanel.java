@@ -40,10 +40,14 @@ public class BuildingPanel extends JPanel {
         setPreferredSize(new Dimension(panelWidth, panelHeight));
     }
 
-    public void setFloorPassengers(Map<Integer, Integer> floorPassengers) {
-        this.floorPassengers = floorPassengers;
-    }
 
+    public void setFloorPassengers(Map<Integer, Integer> floorPassengers) {
+        for (int i = 0; i < BuildingConfig.TOTAL_FLOORS; i++) {
+            int count = floorPassengers.getOrDefault(i, 0);
+        }
+        this.floorPassengers = floorPassengers;
+        repaint();
+    }
     // обновление масштаба (от колёсика мышки)
     public void updateScale(double newScale) {
         this.scale = newScale;

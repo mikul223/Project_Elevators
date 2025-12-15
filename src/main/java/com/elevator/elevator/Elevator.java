@@ -59,6 +59,8 @@ public class Elevator extends Thread {
 
 
     private void optimizeAndProcessRequests() throws InterruptedException {
+
+
         if (activeRequests.isEmpty()) {
             Request newRequest = pendingRequests.poll(100, TimeUnit.MILLISECONDS);
             if (newRequest != null) {
@@ -69,13 +71,28 @@ public class Elevator extends Thread {
                 } finally {
                     lock.unlock();
                 }
+
+                // Выполняем запрос
+                executeSingleRequest(newRequest);
+
+                // Удаляем выполненный запрос
+                lock.lock();
+                try {
+                    activeRequests.remove(newRequest);
+                    if (activeRequests.isEmpty()) {
+                        setElevatorState(ElevatorState.STOPPED, Direction.WAIT);
+                    }
+                } finally {
+                    lock.unlock();
+                }
             } else {
                 setElevatorState(ElevatorState.STOPPED, Direction.WAIT);
                 return;
             }
+        } else {
+            // Если есть активные запросы, продолжаем их обработку
+            executeOptimizedRoute();
         }
-
-        executeOptimizedRoute();
 
     }
 
@@ -117,6 +134,43 @@ public class Elevator extends Thread {
         // Выполняем маршрут с проверкой промежуточных запросов
         executeRouteWithPickups();
     }
+    private void executeSingleRequest(Request request) throws InterruptedException {
+        // 1. Едем на этаж вызова
+        if (currentFloor != request.getCallFloor()) {
+            moveToFloorWithPickups(request.getCallFloor());
+        }
+
+        // 2. Забираем пассажира (открываем двери)
+        System.out.println("Лифт " + (elevatorId + 1) +
+                " принял пассажира на этаже " + (request.getCallFloor() + 1));
+
+        // Удаляем пассажира с этажа в GUI
+        if (gui != null) {
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    ((com.elevator.gui.ElevatorGUI) gui).removePassengerFromFloor(request.getCallFloor());
+                } catch (Exception e) {
+                    System.err.println("Ошибка при удалении пассажира с этажа " + (request.getCallFloor() + 1));
+                }
+            });
+        }
+
+        // Открываем двери
+        openDoors();
+
+        // 3. Едем на целевой этаж
+        if (currentFloor != request.getTargetFloor()) {
+            moveToFloorWithPickups(request.getTargetFloor());
+        }
+
+        // 4. Высаживаем пассажира
+        System.out.println("Лифт " + (elevatorId + 1) +
+                " высадил пассажира на этаже " + (request.getTargetFloor() + 1));
+
+        // Открываем двери
+        openDoors();
+    }
+
 
     private void executeRouteWithPickups() throws InterruptedException {
         boolean continueRoute = true;
@@ -265,6 +319,17 @@ public class Elevator extends Thread {
 
                     toAdd.add(req);
                     iterator.remove();
+
+                    // УДАЛЯЕМ ПАССАЖИРА С ЭТАЖА ЗДЕСЬ ТОЖЕ!
+                    if (gui != null) {
+                        SwingUtilities.invokeLater(() -> {
+                            try {
+                                ((com.elevator.gui.ElevatorGUI) gui).removePassengerFromFloor(currentFloor);
+                            } catch (Exception e) {
+                                System.err.println("Ошибка при удалении пассажира с этажа " + (currentFloor + 1) + ": " + e.getMessage());
+                            }
+                        });
+                    }
                 }
             }
             if (!toAdd.isEmpty()) {
@@ -288,6 +353,7 @@ public class Elevator extends Thread {
 
     }
 
+
     private void processStopAtFloor(int floor) throws InterruptedException {
         setElevatorState(ElevatorState.STOPPED, Direction.WAIT);
 
@@ -302,9 +368,21 @@ public class Elevator extends Thread {
                     System.out.println("Лифт " + (elevatorId + 1) +
                             " высадил пассажира на этаже " + (floor + 1));
                     completedRequests.add(req);
-                } else if (req.getCallFloor() == floor) {
+                }
+                // НЕ отмечаем как boarding, если пассажир уже в лифте!
+                // Это обрабатывается отдельно в checkForIntermediatePickups()
+            }
+
+            // Проверяем pendingRequests - это запросы, которые еще не начаты
+            // (пассажиры ждут на этаже)
+            Iterator<Request> pendingIterator = pendingRequests.iterator();
+            while (pendingIterator.hasNext()) {
+                Request req = pendingIterator.next();
+                if (req.getCallFloor() == floor) {
                     System.out.println("Лифт " + (elevatorId + 1) +
                             " принял пассажира на этаже " + (floor + 1));
+                    activeRequests.add(req);
+                    pendingIterator.remove();
                     passengerBoarded = true;
                 }
             }
@@ -315,10 +393,8 @@ public class Elevator extends Thread {
             lock.unlock();
         }
 
-        // удаление пассажира с этажа GUI
-
+        // Удаление пассажира с этажа GUI - ТОЛЬКО при реальной посадке
         if (passengerBoarded && gui != null) {
-            //invokeLater для потокобезопасности
             SwingUtilities.invokeLater(() -> {
                 try {
                     ((com.elevator.gui.ElevatorGUI) gui).removePassengerFromFloor(floor);

@@ -35,9 +35,6 @@ public class ElevatorGUI extends JFrame {
     }
 
     private void initializePassengerMap() {
-        for (int i = 0; i < BuildingConfig.TOTAL_FLOORS; i++) {
-            floorPassengers.put(i, 0);
-        }
     }
 
     //добавить пассажира на этаж
@@ -45,8 +42,8 @@ public class ElevatorGUI extends JFrame {
         if (floor >= 0 && floor < BuildingConfig.TOTAL_FLOORS) {
             int current = floorPassengers.getOrDefault(floor, 0);
             floorPassengers.put(floor, current + 1);
-            System.out.println("DEBUG: Добавлен пассажир на этаж " + (floor + 1) +
-                    ". Всего: " + floorPassengers.get(floor));
+            System.out.println("Пассажир появился на этаже " + (floor + 1) +
+                    ". Теперь там: " + floorPassengers.get(floor) + " пассажиров");
             buildingPanel.setFloorPassengers(floorPassengers);
             buildingPanel.repaint();
         } else {
@@ -60,8 +57,7 @@ public class ElevatorGUI extends JFrame {
             int current = floorPassengers.getOrDefault(floor, 0);
             if (current > 0) {
                 floorPassengers.put(floor, current - 1);
-                System.out.println("DEBUG: Удален пассажир с этажа " + (floor + 1) +
-                        ". Осталось: " + floorPassengers.get(floor));
+
             } else {
                 System.err.println("Предупреждение: попытка удалить пассажира с пустого этажа " + (floor + 1));
             }

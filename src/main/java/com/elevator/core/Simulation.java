@@ -15,17 +15,12 @@ public class Simulation {
     private final Building building;
     private final Random random = new Random();
     private ScheduledExecutorService scheduler;
-    private final PassengerManager passengerManager;
     private ElevatorGUI gui;
 
     public Simulation(Building building) {
         this.building = building;
-        this.passengerManager = new PassengerManager();
     }
 
-    public PassengerManager getPassengerManager() {
-        return passengerManager;
-    }
 
     public void setGUI(ElevatorGUI gui) {
         this.gui = gui;
@@ -67,12 +62,18 @@ public class Simulation {
 
             Direction direction = (targetFloor > callFloor) ? Direction.UP : Direction.DOWN;
 
-            passengerManager.addPassenger(callFloor);
+
 
             if (gui != null) {
                 SwingUtilities.invokeLater(() -> {
                     gui.addPassengerToFloor(callFloor);
+                    // Сообщение о добавлении пассажира УЖЕ печатается в addPassengerToFloor
+                    // Но мы можем добавить дополнительное сообщение:
+                    System.out.println("Пассажир появился на этаже " + (callFloor + 1) +
+                            ". Теперь там: " + gui.getPassengerCountOnFloor(callFloor) + " пассажиров");
                 });
+            } else {
+                System.out.println("Пассажир появился на этаже " + (callFloor + 1));
             }
 
             Request request = new Request(callFloor, direction, targetFloor);
