@@ -67,8 +67,6 @@ public class Simulation {
             if (gui != null) {
                 SwingUtilities.invokeLater(() -> {
                     gui.addPassengerToFloor(callFloor);
-                    // Сообщение о добавлении пассажира УЖЕ печатается в addPassengerToFloor
-                    // Но мы можем добавить дополнительное сообщение:
                     System.out.println("Пассажир появился на этаже " + (callFloor + 1) +
                             ". Теперь там: " + gui.getPassengerCountOnFloor(callFloor) + " пассажиров");
                 });

@@ -8,7 +8,6 @@ public class BuildingConfig {
     public static final int BASE_FLOOR_HEIGHT = 60;
     public static final int BASE_ELEVATOR_WIDTH = 40;
     public static final int BASE_ELEVATOR_HEIGHT = 70;
-    public static final int BASE_BUILDING_WIDTH = 500;
 
 
     private BuildingConfig() {}

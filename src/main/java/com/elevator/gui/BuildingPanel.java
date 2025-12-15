@@ -5,7 +5,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
 
 public class BuildingPanel extends JPanel {
     private double scale = 1.0;
@@ -33,7 +33,7 @@ public class BuildingPanel extends JPanel {
         this.floorPassengers = floorPassengers;
         updateScaledDimensions();
 
-        setBackground(new Color(165, 192, 220));
+        setBackground(new Color(134, 172, 196));
 
         int panelWidth = 1200;
         int panelHeight = totalFloors * floorHeight + 200; // +отступ
@@ -92,11 +92,11 @@ public class BuildingPanel extends JPanel {
         int startY = indent;
 
         //фон дома
-        g2d.setColor(new Color(213, 164, 139));
+        g2d.setColor(new Color(220, 180, 190));
         g2d.fillRect(startX, startY, buildingWidth, totalFloors * floorHeight);
 
         //контур дома
-        g2d.setColor(new Color(0, 0, 0));
+        g2d.setColor(new Color(4, 84, 126));
         g2d.setStroke(new BasicStroke(4));
         g2d.drawRect(startX, startY, buildingWidth, totalFloors * floorHeight);
 
@@ -107,7 +107,7 @@ public class BuildingPanel extends JPanel {
 
             int lineY = startY + (totalFloors - floor) * floorHeight;
             if (floor > 0) {
-                g2d.setColor(new Color(184, 42, 42));
+                g2d.setColor(new Color(35, 86, 112));
                 g2d.drawLine(startX, lineY, startX + buildingWidth, lineY);
             }
 
@@ -161,9 +161,6 @@ public class BuildingPanel extends JPanel {
                 }
             }
         }
-
-
-
 
     }
 

@@ -35,10 +35,6 @@ public class Request {
         return targetFloor;
     }
 
-    // время
-    public long getTimestamp() {
-        return timestamp;
-    }
 
 
     @Override

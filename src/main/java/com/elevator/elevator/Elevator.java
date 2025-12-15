@@ -320,7 +320,7 @@ public class Elevator extends Thread {
                     toAdd.add(req);
                     iterator.remove();
 
-                    // УДАЛЯЕМ ПАССАЖИРА С ЭТАЖА ЗДЕСЬ ТОЖЕ!
+                    // УДАЛЯЕМ ПАССАЖИРА С ЭТАЖА ЗДЕСЬ ТОЖЕ!!!!!
                     if (gui != null) {
                         SwingUtilities.invokeLater(() -> {
                             try {
@@ -520,33 +520,9 @@ public class Elevator extends Thread {
     }
 
 
-    public ElevatorState getElevatorState() {
-        lock.lock();
-        try {
-            return elevatorState;
-        } finally {
-            lock.unlock();
-        }
-    }
 
-    public int getQueueSize() {
-        lock.lock();
-        try {
-            return pendingRequests.size() + activeRequests.size();
-        } finally {
-            lock.unlock();
-        }
-    }
 
-    public boolean isWAIT() {
-        lock.lock();
-        try {
-            return pendingRequests.isEmpty() && activeRequests.isEmpty() && elevatorState == ElevatorState.STOPPED &&
-                    direction == Direction.WAIT;
-        } finally {
-            lock.unlock();
-        }
-    }
+
 
     public int getActivePassengerCount() {
         lock.lock();
@@ -559,69 +535,8 @@ public class Elevator extends Thread {
 
 }
 
-/*
-    //обработка след запроса из очереди, блок если очередь пуста
-    private void processNextRequest() throws InterruptedException {
-        Request request = requests.take();
-
-        moveToFloor(request.getCallFloor()); //едет к этажу где вызван
-        openDoors(); // двери открываются
-        moveToFloor(request.getTargetFloor()); //едет к пункту назначения
-        openDoors(); //двери открываются
-
-        setElevatorState(ElevatorState.STOPPED, Direction.WAIT); //лифт снова в режиме ожидания
-    }
-
-    //перемещение лифта на нужный этаж
-    private void moveToFloor(int targetFloor) throws InterruptedException {
-
-        if (targetFloor == currentFloor) {
-            return;
-        }
-
-        //определение направления движения
-        Direction moveDirection = (targetFloor > currentFloor) ? Direction.UP : Direction.DOWN;
-
-        setElevatorState(ElevatorState.MOVING, moveDirection);
-
-        //1 этаж за раз
-        while (currentFloor != targetFloor) {
-
-            Thread.sleep(FLOOR_TRAVEL_TIME);
-            lock.lock();
-            try {
-                if (moveDirection == Direction.UP) {
-                    currentFloor++;
-                } else {
-                    currentFloor--;
-                }
-            } finally {
-                lock.unlock();
-            }
-
-            String guiStatus = "MOVING_" + (moveDirection == Direction.UP ? "UP" : "DOWN");
-            gui.updateElevatorState(elevatorId, currentFloor, targetFloor, guiStatus);
-        }
-
-        // приехал состояние STOPPED + лог
-        System.out.println("Лифт " + (elevatorId + 1) + " прибыл на этаж " + (currentFloor + 1));
-        setElevatorState(ElevatorState.STOPPED, Direction.WAIT);
-    }
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-}
-
- */

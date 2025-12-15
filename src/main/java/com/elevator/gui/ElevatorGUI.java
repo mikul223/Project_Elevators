@@ -129,13 +129,13 @@ public class ElevatorGUI extends JFrame {
 
             switch (status.toUpperCase()) {
                 case "MOVING_UP" ->
-                        state.setColor(new Color(255, 7, 7));
+                        state.setColor(new Color(206, 12, 47));
                 case "MOVING_DOWN" ->
-                        state.setColor(new Color(27, 59, 255));
+                        state.setColor(new Color(140, 12, 10));
                 case "DOORS_OPEN" ->
-                        state.setColor(new Color(255, 210, 70));
+                        state.setColor(new Color(246, 221, 133));
                 default ->
-                        state.setColor(new Color(180, 180, 180));
+                        state.setColor(new Color(160, 123, 87));
             }
 
             //перерисовка
